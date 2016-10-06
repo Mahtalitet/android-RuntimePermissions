@@ -27,7 +27,7 @@ import java.io.IOException;
 
 /**
  * Camera preview that displays a {@link Camera}.
- *
+ * <p>
  * Handles basic lifecycle methods to display and stop the preview.
  * <p>
  * Implementation is based directly on the documentation at
@@ -42,7 +42,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     private int mDisplayOrientation;
 
     public CameraPreview(Context context, Camera camera, Camera.CameraInfo cameraInfo,
-            int displayOrientation) {
+                         int displayOrientation) {
         super(context);
 
         // Do not initialise if no camera has been set
@@ -57,6 +57,41 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         // underlying surface is created and destroyed.
         mHolder = getHolder();
         mHolder.addCallback(this);
+    }
+
+    /**
+     * Calculate the correct orientation for a {@link Camera} preview that is displayed on screen.
+     * <p>
+     * Implementation is based on the sample code provided in
+     * {@link Camera#setDisplayOrientation(int)}.
+     */
+    private static int calculatePreviewOrientation(Camera.CameraInfo info, int rotation) {
+        int degrees = 0;
+
+        switch (rotation) {
+            case Surface.ROTATION_0:
+                degrees = 0;
+                break;
+            case Surface.ROTATION_90:
+                degrees = 90;
+                break;
+            case Surface.ROTATION_180:
+                degrees = 180;
+                break;
+            case Surface.ROTATION_270:
+                degrees = 270;
+                break;
+        }
+
+        int result;
+        if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            result = (info.orientation + degrees) % 360;
+            result = (360 - result) % 360;  // compensate the mirror
+        } else {  // back-facing
+            result = (info.orientation - degrees + 360) % 360;
+        }
+
+        return result;
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
@@ -103,40 +138,5 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         } catch (Exception e) {
             Log.d(TAG, "Error starting camera preview: " + e.getMessage());
         }
-    }
-
-    /**
-     * Calculate the correct orientation for a {@link Camera} preview that is displayed on screen.
-     *
-     * Implementation is based on the sample code provided in
-     * {@link Camera#setDisplayOrientation(int)}.
-     */
-    public static int calculatePreviewOrientation(Camera.CameraInfo info, int rotation) {
-        int degrees = 0;
-
-        switch (rotation) {
-            case Surface.ROTATION_0:
-                degrees = 0;
-                break;
-            case Surface.ROTATION_90:
-                degrees = 90;
-                break;
-            case Surface.ROTATION_180:
-                degrees = 180;
-                break;
-            case Surface.ROTATION_270:
-                degrees = 270;
-                break;
-        }
-
-        int result;
-        if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            result = (info.orientation + degrees) % 360;
-            result = (360 - result) % 360;  // compensate the mirror
-        } else {  // back-facing
-            result = (info.orientation - degrees + 360) % 360;
-        }
-
-        return result;
     }
 }

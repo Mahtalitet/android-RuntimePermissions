@@ -28,11 +28,9 @@ public class RuntimePermissionsFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_main, null);
 
-        // BEGIN_INCLUDE(m_only_permission)
         if (Build.VERSION.SDK_INT < 23) {
             /*
             The contacts permissions have been declared in the AndroidManifest for Android M  and
@@ -44,8 +42,7 @@ public class RuntimePermissionsFragment extends Fragment {
              */
             root.findViewById(R.id.button_contacts).setVisibility(View.GONE);
         }
-        // END_INCLUDE(m_only_permission)
-
         return root;
     }
+
 }

@@ -1,27 +1,4 @@
-/*
-* Copyright 2015 The Android Open Source Project
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-
 package com.example.android.system.runtimepermissions;
-
-import com.example.android.common.logger.Log;
-import com.example.android.common.logger.LogFragment;
-import com.example.android.common.logger.LogWrapper;
-import com.example.android.common.logger.MessageOnlyLogFilter;
-import com.example.android.system.runtimepermissions.camera.CameraPreviewFragment;
-import com.example.android.system.runtimepermissions.contacts.ContactsFragment;
 
 import android.Manifest;
 import android.app.Activity;
@@ -32,12 +9,14 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentTransaction;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ViewAnimator;
 
-import common.activities.SampleActivityBase;
+import com.example.android.system.runtimepermissions.camera.CameraPreviewFragment;
+import com.example.android.system.runtimepermissions.contacts.ContactsFragment;
 
 /**
  * Launcher Activity that demonstrates the use of runtime permissions for Android M.
@@ -83,7 +62,7 @@ import common.activities.SampleActivityBase;
 public class MainActivity extends SampleActivityBase
         implements ActivityCompat.OnRequestPermissionsResultCallback {
 
-    public static final String TAG = "MainActivity";
+    private static final String TAG = "MainActivity";
 
     /**
      * Id to identify a camera permission request.
@@ -98,7 +77,7 @@ public class MainActivity extends SampleActivityBase
     /**
      * Permissions required to read and write contacts. Used by the {@link ContactsFragment}.
      */
-    private static String[] PERMISSIONS_CONTACT = {Manifest.permission.READ_CONTACTS,
+    private static final String[] PERMISSIONS_CONTACT = {Manifest.permission.READ_CONTACTS,
             Manifest.permission.WRITE_CONTACTS};
 
     // Whether the Log Fragment is currently shown.
@@ -108,6 +87,11 @@ public class MainActivity extends SampleActivityBase
      * Root of the layout of this Activity.
      */
     private View mLayout;
+    /**
+     * Indicates whether need to take related action after permission granted or not.
+     */
+    private boolean mShowCameraActionFlag = false;
+    private boolean mShowContactActionFlag = false;
 
     /**
      * Called when the 'show camera' button is clicked.
@@ -171,7 +155,7 @@ public class MainActivity extends SampleActivityBase
     }
 
     /**
-     * Called when the 'show camera' button is clicked.
+     * Called when the 'show contacts' button is clicked.
      * Callback is defined in resource layout definition.
      */
     public void showContacts(View v) {
@@ -232,7 +216,6 @@ public class MainActivity extends SampleActivityBase
         // END_INCLUDE(contacts_permission_request)
     }
 
-
     /**
      * Display the {@link CameraPreviewFragment} in the content area if the required Camera
      * permission has been granted.
@@ -243,6 +226,9 @@ public class MainActivity extends SampleActivityBase
                 .addToBackStack("contacts")
                 .commit();
     }
+
+    /* Note: Methods and definitions below are only used to provide the UI for this sample and are
+    not relevant for the execution of the runtime permissions API. */
 
     /**
      * Display the {@link ContactsFragment} in the content area if the required contacts
@@ -256,13 +242,12 @@ public class MainActivity extends SampleActivityBase
                 .commit();
     }
 
-
     /**
      * Callback received when a permissions request has been completed.
      */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-            @NonNull int[] grantResults) {
+                                           @NonNull int[] grantResults) {
 
         if (requestCode == REQUEST_CAMERA) {
             // BEGIN_INCLUDE(permission_result)
@@ -275,10 +260,12 @@ public class MainActivity extends SampleActivityBase
                 Log.i(TAG, "CAMERA permission has now been granted. Showing preview.");
                 Snackbar.make(mLayout, R.string.permision_available_camera,
                         Snackbar.LENGTH_SHORT).show();
+                mShowCameraActionFlag = true;
             } else {
                 Log.i(TAG, "CAMERA permission was NOT granted.");
                 Snackbar.make(mLayout, R.string.permissions_not_granted,
                         Snackbar.LENGTH_SHORT).show();
+                mShowContactActionFlag = true;
 
             }
             // END_INCLUDE(permission_result)
@@ -304,10 +291,6 @@ public class MainActivity extends SampleActivityBase
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
-
-    /* Note: Methods and definitions below are only used to provide the UI for this sample and are
-    not relevant for the execution of the runtime permissions API. */
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -341,22 +324,11 @@ public class MainActivity extends SampleActivityBase
         return super.onOptionsItemSelected(item);
     }
 
-    /** Create a chain of targets that will receive log data */
+    /**
+     * Create a chain of targets that will receive log data
+     */
     @Override
     public void initializeLogging() {
-        // Wraps Android's native log framework.
-        LogWrapper logWrapper = new LogWrapper();
-        // Using Log, front-end to the logging chain, emulates android.util.log method signatures.
-        Log.setLogNode(logWrapper);
-
-        // Filter strips out everything except the message text.
-        MessageOnlyLogFilter msgFilter = new MessageOnlyLogFilter();
-        logWrapper.setNext(msgFilter);
-
-        // On screen logging via a fragment with a TextView.
-        LogFragment logFragment = (LogFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.log_fragment);
-        msgFilter.setNext(logFragment.getLogView());
     }
 
     public void onBackClick(View view) {
@@ -380,4 +352,24 @@ public class MainActivity extends SampleActivityBase
         // screen, as well as to adb logcat.
         initializeLogging();
     }
+
+    /**
+     * +    * Do permission related actions after Activity resumed.
+     * If you do things below in {@link android.support.v4.app.FragmentActivity#onRequestPermissionsResult(int, String[], int[])}
+     * instantly, you may encounter the {@link IllegalStateException} because of consideration of activity's state loss.
+     */
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        if (mShowCameraActionFlag) {
+            showCameraPreview();
+            mShowCameraActionFlag = false;
+        }
+        if (mShowContactActionFlag) {
+            showContactDetails();
+            mShowContactActionFlag = false;
+        }
+    }
+
+
 }

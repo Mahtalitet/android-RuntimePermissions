@@ -16,17 +16,17 @@
 
 package com.example.android.system.runtimepermissions.camera;
 
-import com.example.android.common.logger.Log;
-import com.example.android.system.runtimepermissions.R;
-
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.Toast;
+
+import com.example.android.system.runtimepermissions.R;
 
 /**
  * Displays a {@link CameraPreview} of the first {@link Camera}.
@@ -48,19 +48,32 @@ public class CameraPreviewFragment extends Fragment {
      */
     private static final int CAMERA_ID = 0;
 
-    private CameraPreview mPreview;
     private Camera mCamera;
 
     public static CameraPreviewFragment newInstance() {
         return new CameraPreviewFragment();
     }
 
+    /**
+     * A safe way to get an instance of the Camera object.
+     */
+    private static Camera getCameraInstance() {
+        Camera c = null;
+        try {
+            c = Camera.open(CameraPreviewFragment.CAMERA_ID); // attempt to get a Camera instance
+        } catch (Exception e) {
+            // Camera is not available (in use or does not exist)
+            Log.d(TAG, "Camera " + CameraPreviewFragment.CAMERA_ID + " is not available: " + e.getMessage());
+        }
+        return c; // returns null if camera is unavailable
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
+                             Bundle savedInstanceState) {
 
         // Open an instance of the first camera and retrieve its info.
-        mCamera = getCameraInstance(CAMERA_ID);
+        mCamera = getCameraInstance();
         Camera.CameraInfo cameraInfo = null;
 
         if (mCamera != null) {
@@ -69,7 +82,7 @@ public class CameraPreviewFragment extends Fragment {
             Camera.getCameraInfo(CAMERA_ID, cameraInfo);
         }
 
-        if (mCamera == null || cameraInfo == null) {
+        if (mCamera == null) {
             // Camera is not available, display error message
             Toast.makeText(getActivity(), "Camera is not available.", Toast.LENGTH_SHORT).show();
             return inflater.inflate(R.layout.fragment_camera_unavailable, null);
@@ -82,7 +95,7 @@ public class CameraPreviewFragment extends Fragment {
                 .getRotation();
 
         // Create the Preview view and set it as the content of this Activity.
-        mPreview = new CameraPreview(getActivity(), mCamera, cameraInfo, displayRotation);
+        CameraPreview mPreview = new CameraPreview(getActivity(), mCamera, cameraInfo, displayRotation);
         FrameLayout preview = (FrameLayout) root.findViewById(R.id.camera_preview);
         preview.addView(mPreview);
 
@@ -94,18 +107,6 @@ public class CameraPreviewFragment extends Fragment {
         super.onPause();
         // Stop camera access
         releaseCamera();
-    }
-
-    /** A safe way to get an instance of the Camera object. */
-    public static Camera getCameraInstance(int cameraId) {
-        Camera c = null;
-        try {
-            c = Camera.open(cameraId); // attempt to get a Camera instance
-        } catch (Exception e) {
-            // Camera is not available (in use or does not exist)
-            Log.d(TAG, "Camera " + cameraId + " is not available: " + e.getMessage());
-        }
-        return c; // returns null if camera is unavailable
     }
 
     private void releaseCamera() {
